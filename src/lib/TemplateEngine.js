@@ -1029,11 +1029,31 @@ define([
     $('link[href*="mobile.css"]').each(function(){
       this.media = 'only screen and (max-width: ' + thisTemplateEngine.maxMobileScreenWidth + 'px)';
     });
-    
-    var page = $('pages > page', xml)[0]; // only one page element allowed...
 
-    thisTemplateEngine.create_pages(page, 'id');
-    thisTemplateEngine.design.getCreator('page').createFinal();
+    var cache = localStorage.getItem("dom");
+    var body = $('body');
+
+    if (cache) {
+      body.empty();
+      body.prepend( cache );
+      templateEngine.widgetData = JSON.parse(localStorage.getItem("data"));
+      localStorage.removeItem("callbacks");
+      thisTemplateEngine.callbacks[ 'id_' ] = {
+        exitingPageChange: [],// called when the current page is left
+        beforePageChange: [], // called as soon as a page change is known
+        duringPageChange: [], // called when the page is theoretical visible, i.e. "display:none" is removed - CSS calculations shoud work now
+        afterPageChange: []   // called together with the global event when the transition is finished
+      };
+    } else {
+      var page = $('pages > page', xml)[0]; // only one page element allowed...
+
+      thisTemplateEngine.create_pages(page, 'id');
+      thisTemplateEngine.design.getCreator('page').createFinal();
+
+      // cache dom + data
+      localStorage.setItem("dom", body.html());
+      localStorage.setItem("data", JSON.stringify(templateEngine.widgetData));
+    }
     profileCV( 'setup_page created pages' );
     
     thisTemplateEngine.postDOMSetupFns.forEach( function( thisFn ){
@@ -1140,7 +1160,7 @@ define([
       duringPageChange: [], // called when the page is theoretical visible, i.e. "display:none" is removed - CSS calculations shoud work now
       afterPageChange: []   // called together with the global event when the transition is finished
     };
-    
+
     var retval = creator.create(page, path, flavour, type);
 
     if( undefined === retval )
